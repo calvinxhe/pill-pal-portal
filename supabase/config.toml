@@ -1,1 +1,4 @@
 project_id = "ndyptesttsshnzmffpes"
+
+[functions.junction-link-token]
+verify_jwt = false

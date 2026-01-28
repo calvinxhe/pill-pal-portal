@@ -12,8 +12,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import EncounterTimer from './EncounterTimer';
 import { useEncounterTimer } from '@/hooks/useEncounterTimer';
 import { CGM_ENCOUNTER_STEPS } from '@/lib/encounterSteps';
-import { CheckCircle2, Circle, XCircle } from 'lucide-react';
-
+import { CheckCircle2, Circle, XCircle, Smartphone } from 'lucide-react';
+import JunctionLinkDialog from './JunctionLinkDialog';
 interface ChecklistItem {
   id: string;
   step_key: string;
@@ -26,6 +26,7 @@ interface ChecklistItem {
 
 interface EncounterWorkflowProps {
   encounterId: string;
+  patientId: string;
   patientName: string;
   startedAt: Date;
   onEndEncounter: () => void;
@@ -34,6 +35,7 @@ interface EncounterWorkflowProps {
 
 const EncounterWorkflow: React.FC<EncounterWorkflowProps> = ({
   encounterId,
+  patientId,
   patientName,
   startedAt,
   onEndEncounter,
@@ -47,6 +49,7 @@ const EncounterWorkflow: React.FC<EncounterWorkflowProps> = ({
   const [notes, setNotes] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isEnding, setIsEnding] = useState(false);
+  const [isJunctionDialogOpen, setIsJunctionDialogOpen] = useState(false);
 
   const { formattedTime, elapsedSeconds, stop } = useEncounterTimer({
     encounterId,
@@ -331,6 +334,18 @@ const EncounterWorkflow: React.FC<EncounterWorkflowProps> = ({
                       />
                     </div>
                   )}
+
+                  {stepConfig?.hasAction === 'junction-link' && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-2"
+                      onClick={() => setIsJunctionDialogOpen(true)}
+                    >
+                      <Smartphone className="h-4 w-4 mr-2" />
+                      Connect Device
+                    </Button>
+                  )}
                 </div>
               </div>
             );
@@ -369,6 +384,20 @@ const EncounterWorkflow: React.FC<EncounterWorkflowProps> = ({
           </div>
         </CardContent>
       </Card>
+
+      <JunctionLinkDialog
+        patientId={patientId}
+        patientName={patientName}
+        isOpen={isJunctionDialogOpen}
+        onOpenChange={setIsJunctionDialogOpen}
+        onSuccess={() => {
+          // Optionally auto-check the pair_phone_app step
+          const pairStep = checklistItems.find((i) => i.step_key === 'pair_phone_app');
+          if (pairStep && !pairStep.completed) {
+            handleToggleStep(pairStep);
+          }
+        }}
+      />
     </div>
   );
 };
