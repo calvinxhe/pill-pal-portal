@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import {
   Table,
   TableBody,
@@ -13,19 +14,22 @@ import {
 } from '@/components/ui/table';
 import { supabase } from '@/integrations/supabase/client';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, parseISO } from 'date-fns';
-import { Download, Calendar, Clock, FileSpreadsheet } from 'lucide-react';
+import { Download, Calendar, Clock, FileSpreadsheet, Plus } from 'lucide-react';
+import CreateTimesheetModal from './CreateTimesheetModal';
 
 interface DailyTotal {
   date: string;
-  encounters: number;
+  entries: number;
   totalSeconds: number;
 }
 
-interface Encounter {
+interface TimesheetEntry {
   id: string;
-  started_at: string;
-  ended_at: string | null;
-  total_duration_seconds: number | null;
+  duration_seconds: number;
+  notes: string | null;
+  time_type: 'PCM' | 'CCM' | 'TCM';
+  source: string;
+  created_at: string;
   patients: {
     first_name: string;
     last_name: string;
@@ -41,9 +45,10 @@ const TimesheetReport: React.FC = () => {
     const date = endOfWeek(new Date(), { weekStartsOn: 1 });
     return format(date, 'yyyy-MM-dd');
   });
-  const [encounters, setEncounters] = useState<Encounter[]>([]);
+  const [entries, setEntries] = useState<TimesheetEntry[]>([]);
   const [dailyTotals, setDailyTotals] = useState<DailyTotal[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -53,38 +58,39 @@ const TimesheetReport: React.FC = () => {
     setIsLoading(true);
     try {
       const { data, error } = await supabase
-        .from('cgm_encounters')
+        .from('timesheet_entries')
         .select(`
           id,
-          started_at,
-          ended_at,
-          total_duration_seconds,
+          duration_seconds,
+          notes,
+          time_type,
+          source,
+          created_at,
           patients (
             first_name,
             last_name
           )
         `)
-        .eq('status', 'completed')
-        .gte('started_at', `${startDate}T00:00:00`)
-        .lte('started_at', `${endDate}T23:59:59`)
-        .order('started_at', { ascending: true });
+        .gte('created_at', `${startDate}T00:00:00`)
+        .lte('created_at', `${endDate}T23:59:59`)
+        .order('created_at', { ascending: true });
 
       if (error) throw error;
 
-      const encounterData = (data as unknown as Encounter[]) || [];
-      setEncounters(encounterData);
+      const entryData = (data as unknown as TimesheetEntry[]) || [];
+      setEntries(entryData);
 
       // Calculate daily totals
       const totalsMap = new Map<string, DailyTotal>();
-      encounterData.forEach((enc) => {
-        const dateKey = format(new Date(enc.started_at), 'yyyy-MM-dd');
+      entryData.forEach((entry) => {
+        const dateKey = format(new Date(entry.created_at), 'yyyy-MM-dd');
         const existing = totalsMap.get(dateKey) || {
           date: dateKey,
-          encounters: 0,
+          entries: 0,
           totalSeconds: 0,
         };
-        existing.encounters += 1;
-        existing.totalSeconds += enc.total_duration_seconds || 0;
+        existing.entries += 1;
+        existing.totalSeconds += entry.duration_seconds || 0;
         totalsMap.set(dateKey, existing);
       });
 
@@ -112,9 +118,9 @@ const TimesheetReport: React.FC = () => {
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const totalEncounters = encounters.length;
-  const totalSeconds = encounters.reduce((sum, e) => sum + (e.total_duration_seconds || 0), 0);
-  const avgSeconds = totalEncounters > 0 ? totalSeconds / totalEncounters : 0;
+  const totalEntries = entries.length;
+  const totalSeconds = entries.reduce((sum, e) => sum + (e.duration_seconds || 0), 0);
+  const avgSeconds = totalEntries > 0 ? totalSeconds / totalEntries : 0;
 
   const setThisWeek = () => {
     setStartDate(format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd'));
@@ -127,16 +133,17 @@ const TimesheetReport: React.FC = () => {
   };
 
   const handleExportCSV = () => {
-    const headers = ['Date', 'Patient', 'Start Time', 'End Time', 'Duration (min)'];
-    const rows = encounters.map((enc) => [
-      format(new Date(enc.started_at), 'yyyy-MM-dd'),
-      `${enc.patients.first_name} ${enc.patients.last_name}`,
-      format(new Date(enc.started_at), 'HH:mm'),
-      enc.ended_at ? format(new Date(enc.ended_at), 'HH:mm') : '',
-      enc.total_duration_seconds ? Math.round(enc.total_duration_seconds / 60).toString() : '',
+    const headers = ['Date', 'Patient', 'Type', 'Source', 'Duration (min)', 'Notes'];
+    const rows = entries.map((entry) => [
+      format(new Date(entry.created_at), 'yyyy-MM-dd'),
+      `${entry.patients.first_name} ${entry.patients.last_name}`,
+      entry.time_type,
+      entry.source,
+      Math.round(entry.duration_seconds / 60).toString(),
+      entry.notes || '',
     ]);
 
-    const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const csv = [headers.join(','), ...rows.map((r) => r.map(cell => `"${cell}"`).join(','))].join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -146,11 +153,28 @@ const TimesheetReport: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
+  const getTimeTypeBadgeVariant = (type: string) => {
+    switch (type) {
+      case 'PCM':
+        return 'default';
+      case 'CCM':
+        return 'secondary';
+      case 'TCM':
+        return 'outline';
+      default:
+        return 'default';
+    }
+  };
+
+  const getSourceBadgeVariant = (source: string) => {
+    return source === 'manual' ? 'default' : 'secondary';
+  };
+
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-3xl font-bold tracking-tight">Timesheet Report</h2>
-        <p className="text-muted-foreground">Track time spent on CGM encounters</p>
+        <p className="text-muted-foreground">Track time spent on patient care activities</p>
       </div>
 
       {/* Date Range Selector */}
@@ -186,10 +210,16 @@ const TimesheetReport: React.FC = () => {
             <Button variant="outline" onClick={setThisMonth}>
               This Month
             </Button>
-            <Button onClick={handleExportCSV} className="ml-auto">
-              <Download className="h-4 w-4 mr-2" />
-              Export CSV
-            </Button>
+            <div className="ml-auto flex gap-2">
+              <Button onClick={() => setIsCreateModalOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Create Timesheet
+              </Button>
+              <Button variant="outline" onClick={handleExportCSV}>
+                <Download className="h-4 w-4 mr-2" />
+                Export CSV
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -200,11 +230,11 @@ const TimesheetReport: React.FC = () => {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <FileSpreadsheet className="h-4 w-4" />
-              Total Encounters
+              Total Entries
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalEncounters}</div>
+            <div className="text-2xl font-bold">{totalEntries}</div>
           </CardContent>
         </Card>
         <Card>
@@ -242,7 +272,7 @@ const TimesheetReport: React.FC = () => {
             <div className="text-center py-8 text-muted-foreground">Loading...</div>
           ) : dailyTotals.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              No encounters in selected date range
+              No timesheet entries in selected date range
             </div>
           ) : (
             <Table>
@@ -250,7 +280,7 @@ const TimesheetReport: React.FC = () => {
                 <TableRow>
                   <TableHead>Date</TableHead>
                   <TableHead>Day</TableHead>
-                  <TableHead className="text-right">Encounters</TableHead>
+                  <TableHead className="text-right">Entries</TableHead>
                   <TableHead className="text-right">Total Time</TableHead>
                 </TableRow>
               </TableHeader>
@@ -261,7 +291,7 @@ const TimesheetReport: React.FC = () => {
                       {format(parseISO(day.date), 'MMM d, yyyy')}
                     </TableCell>
                     <TableCell>{format(parseISO(day.date), 'EEEE')}</TableCell>
-                    <TableCell className="text-right">{day.encounters}</TableCell>
+                    <TableCell className="text-right">{day.entries}</TableCell>
                     <TableCell className="text-right font-mono">
                       {formatDurationHMS(day.totalSeconds)}
                     </TableCell>
@@ -269,7 +299,7 @@ const TimesheetReport: React.FC = () => {
                 ))}
                 <TableRow className="bg-muted/50 font-semibold">
                   <TableCell colSpan={2}>Total</TableCell>
-                  <TableCell className="text-right">{totalEncounters}</TableCell>
+                  <TableCell className="text-right">{totalEntries}</TableCell>
                   <TableCell className="text-right font-mono">
                     {formatDurationHMS(totalSeconds)}
                   </TableCell>
@@ -280,18 +310,18 @@ const TimesheetReport: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Detailed Encounters */}
+      {/* Detailed Entries */}
       <Card>
         <CardHeader>
-          <CardTitle>Detailed Encounters</CardTitle>
-          <CardDescription>Individual encounter records</CardDescription>
+          <CardTitle>Detailed Entries</CardTitle>
+          <CardDescription>Individual timesheet records</CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
             <div className="text-center py-8 text-muted-foreground">Loading...</div>
-          ) : encounters.length === 0 ? (
+          ) : entries.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              No encounters in selected date range
+              No timesheet entries in selected date range
             </div>
           ) : (
             <Table>
@@ -299,30 +329,36 @@ const TimesheetReport: React.FC = () => {
                 <TableRow>
                   <TableHead>Date</TableHead>
                   <TableHead>Patient</TableHead>
-                  <TableHead>Start</TableHead>
-                  <TableHead>End</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Source</TableHead>
                   <TableHead className="text-right">Duration</TableHead>
+                  <TableHead>Notes</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {encounters.map((enc) => (
-                  <TableRow key={enc.id}>
+                {entries.map((entry) => (
+                  <TableRow key={entry.id}>
                     <TableCell>
-                      {format(new Date(enc.started_at), 'MMM d')}
+                      {format(new Date(entry.created_at), 'MMM d')}
                     </TableCell>
                     <TableCell className="font-medium">
-                      {enc.patients.first_name} {enc.patients.last_name}
+                      {entry.patients.first_name} {entry.patients.last_name}
                     </TableCell>
                     <TableCell>
-                      {format(new Date(enc.started_at), 'h:mm a')}
+                      <Badge variant={getTimeTypeBadgeVariant(entry.time_type)}>
+                        {entry.time_type}
+                      </Badge>
                     </TableCell>
                     <TableCell>
-                      {enc.ended_at ? format(new Date(enc.ended_at), 'h:mm a') : '-'}
+                      <Badge variant={getSourceBadgeVariant(entry.source)}>
+                        {entry.source === 'manual' ? 'Manual' : 'Notes'}
+                      </Badge>
                     </TableCell>
                     <TableCell className="text-right font-mono">
-                      {enc.total_duration_seconds
-                        ? formatDuration(enc.total_duration_seconds)
-                        : '-'}
+                      {formatDuration(entry.duration_seconds)}
+                    </TableCell>
+                    <TableCell className="max-w-xs truncate">
+                      {entry.notes || '-'}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -331,6 +367,13 @@ const TimesheetReport: React.FC = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Create Timesheet Modal */}
+      <CreateTimesheetModal
+        isOpen={isCreateModalOpen}
+        onOpenChange={setIsCreateModalOpen}
+        onTimesheetCreated={loadData}
+      />
     </div>
   );
 };
