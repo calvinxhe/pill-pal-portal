@@ -12,9 +12,16 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, parseISO } from 'date-fns';
-import { Download, Calendar, Clock, FileSpreadsheet, Plus } from 'lucide-react';
+import { Download, Calendar, Clock, FileSpreadsheet, Plus, FileText } from 'lucide-react';
 import CreateTimesheetModal from './CreateTimesheetModal';
 
 interface DailyTotal {
@@ -49,6 +56,7 @@ const TimesheetReport: React.FC = () => {
   const [dailyTotals, setDailyTotals] = useState<DailyTotal[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [selectedNotes, setSelectedNotes] = useState<{ notes: string; patientName: string } | null>(null);
 
   useEffect(() => {
     loadData();
@@ -357,8 +365,20 @@ const TimesheetReport: React.FC = () => {
                     <TableCell className="text-right font-mono">
                       {formatDuration(entry.duration_seconds)}
                     </TableCell>
-                    <TableCell className="max-w-xs truncate">
-                      {entry.notes || '-'}
+                    <TableCell className="max-w-xs">
+                      {entry.notes ? (
+                        <button
+                          onClick={() => setSelectedNotes({
+                            notes: entry.notes!,
+                            patientName: `${entry.patients.first_name} ${entry.patients.last_name}`
+                          })}
+                          className="text-left truncate block w-full hover:text-primary hover:underline cursor-pointer"
+                        >
+                          {entry.notes}
+                        </button>
+                      ) : (
+                        '-'
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -374,6 +394,23 @@ const TimesheetReport: React.FC = () => {
         onOpenChange={setIsCreateModalOpen}
         onTimesheetCreated={loadData}
       />
+
+      {/* Notes View Modal */}
+      <Dialog open={!!selectedNotes} onOpenChange={() => setSelectedNotes(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Notes for {selectedNotes?.patientName}
+            </DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="max-h-[60vh]">
+            <div className="p-4 text-sm whitespace-pre-wrap">
+              {selectedNotes?.notes}
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
