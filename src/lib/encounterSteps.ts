@@ -4,6 +4,7 @@ export interface EncounterStep {
   order: number;
   subSteps?: string[];
   hasInput?: 'copay' | 'serial';
+  hasAction?: 'junction-link';
 }
 
 export const CGM_ENCOUNTER_STEPS: EncounterStep[] = [
@@ -59,6 +60,7 @@ export const CGM_ENCOUNTER_STEPS: EncounterStep[] = [
     key: 'pair_phone_app',
     label: 'Pair Phone/App with Omni',
     order: 9,
+    hasAction: 'junction-link',
   },
   {
     key: 'verify_data_sync',

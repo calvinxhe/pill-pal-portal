@@ -249,6 +249,7 @@ const EncounterDashboard: React.FC = () => {
           {activeEncounter ? (
             <EncounterWorkflow
               encounterId={activeEncounter.id}
+              patientId={activeEncounter.patient_id}
               patientName={`${activeEncounter.patients.first_name} ${activeEncounter.patients.last_name}`}
               startedAt={new Date(activeEncounter.started_at)}
               onEndEncounter={handleEndEncounter}
