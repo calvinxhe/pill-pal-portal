@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -20,6 +21,7 @@ interface RetroactiveNotesModalProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   encounterId: string;
+  patientId: string;
   patientName: string;
   existingNotes: string | null;
   onNotesUpdated: () => void;
@@ -29,6 +31,7 @@ const RetroactiveNotesModal: React.FC<RetroactiveNotesModalProps> = ({
   isOpen,
   onOpenChange,
   encounterId,
+  patientId,
   patientName,
   existingNotes,
   onNotesUpdated,
@@ -36,6 +39,7 @@ const RetroactiveNotesModal: React.FC<RetroactiveNotesModalProps> = ({
   const { user } = useAuth();
   const { toast } = useToast();
   const [notes, setNotes] = useState(existingNotes || '');
+  const [timeType, setTimeType] = useState<'PCM' | 'CCM' | 'TCM'>('PCM');
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -45,6 +49,7 @@ const RetroactiveNotesModal: React.FC<RetroactiveNotesModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       setNotes(existingNotes || '');
+      setTimeType('PCM');
       setElapsedSeconds(0);
       startTimeRef.current = new Date();
       
@@ -81,6 +86,15 @@ const RetroactiveNotesModal: React.FC<RetroactiveNotesModalProps> = ({
       return;
     }
 
+    if (!user?.id) {
+      toast({
+        title: 'Authentication Error',
+        description: 'You must be logged in to save notes.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsSaving(true);
 
     try {
@@ -102,32 +116,24 @@ const RetroactiveNotesModal: React.FC<RetroactiveNotesModalProps> = ({
 
       if (updateError) throw updateError;
 
-      // Add the time spent on notes to the encounter's total duration
-      // This creates a "timesheet entry" by updating the total duration
-      const { data: encounter, error: fetchError } = await supabase
-        .from('cgm_encounters')
-        .select('total_duration_seconds')
-        .eq('id', encounterId)
-        .maybeSingle();
+      // Create a timesheet entry for the notes time
+      const { error: timesheetError } = await supabase
+        .from('timesheet_entries')
+        .insert({
+          patient_id: patientId,
+          staff_user_id: user.id,
+          encounter_id: encounterId,
+          duration_seconds: finalDuration,
+          notes: notes.trim(),
+          time_type: timeType,
+          source: 'notes',
+        });
 
-      if (fetchError) throw fetchError;
-
-      if (encounter) {
-        const newTotalDuration = (encounter.total_duration_seconds || 0) + finalDuration;
-        
-        const { error: durationError } = await supabase
-          .from('cgm_encounters')
-          .update({
-            total_duration_seconds: newTotalDuration,
-          })
-          .eq('id', encounterId);
-
-        if (durationError) throw durationError;
-      }
+      if (timesheetError) throw timesheetError;
 
       toast({
         title: 'Notes Saved',
-        description: `Notes added and ${formatTime(finalDuration)} added to timesheet.`,
+        description: `Notes added and ${formatTime(finalDuration)} recorded as ${timeType}.`,
       });
 
       onNotesUpdated();
@@ -161,7 +167,7 @@ const RetroactiveNotesModal: React.FC<RetroactiveNotesModalProps> = ({
             Add Retroactive Notes
           </DialogTitle>
           <DialogDescription>
-            Add notes to the encounter for {patientName}. Time spent will be added to the timesheet.
+            Add notes to the encounter for {patientName}. Time spent will be recorded to your timesheet.
           </DialogDescription>
         </DialogHeader>
 
@@ -180,6 +186,29 @@ const RetroactiveNotesModal: React.FC<RetroactiveNotesModalProps> = ({
                 Recording
               </Badge>
             </div>
+          </div>
+
+          {/* Time Type Selector */}
+          <div className="space-y-2">
+            <Label>Time Type</Label>
+            <RadioGroup
+              value={timeType}
+              onValueChange={(value) => setTimeType(value as 'PCM' | 'CCM' | 'TCM')}
+              className="flex gap-4"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="PCM" id="notes-pcm" />
+                <Label htmlFor="notes-pcm" className="cursor-pointer">PCM</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="CCM" id="notes-ccm" />
+                <Label htmlFor="notes-ccm" className="cursor-pointer">CCM</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="TCM" id="notes-tcm" />
+                <Label htmlFor="notes-tcm" className="cursor-pointer">TCM</Label>
+              </div>
+            </RadioGroup>
           </div>
 
           {/* Notes Input */}

@@ -233,6 +233,57 @@ export type Database = {
         }
         Relationships: []
       }
+      timesheet_entries: {
+        Row: {
+          created_at: string
+          duration_seconds: number
+          encounter_id: string | null
+          id: string
+          notes: string | null
+          patient_id: string
+          source: string
+          staff_user_id: string
+          time_type: Database["public"]["Enums"]["time_type"]
+        }
+        Insert: {
+          created_at?: string
+          duration_seconds: number
+          encounter_id?: string | null
+          id?: string
+          notes?: string | null
+          patient_id: string
+          source?: string
+          staff_user_id: string
+          time_type?: Database["public"]["Enums"]["time_type"]
+        }
+        Update: {
+          created_at?: string
+          duration_seconds?: number
+          encounter_id?: string | null
+          id?: string
+          notes?: string | null
+          patient_id?: string
+          source?: string
+          staff_user_id?: string
+          time_type?: Database["public"]["Enums"]["time_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "timesheet_entries_encounter_id_fkey"
+            columns: ["encounter_id"]
+            isOneToOne: false
+            referencedRelation: "cgm_encounters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timesheet_entries_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -243,6 +294,7 @@ export type Database = {
     Enums: {
       encounter_status: "in_progress" | "completed" | "cancelled"
       queue_status: "waiting" | "called" | "in_progress" | "done"
+      time_type: "PCM" | "CCM" | "TCM"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -372,6 +424,7 @@ export const Constants = {
     Enums: {
       encounter_status: ["in_progress", "completed", "cancelled"],
       queue_status: ["waiting", "called", "in_progress", "done"],
+      time_type: ["PCM", "CCM", "TCM"],
     },
   },
 } as const

@@ -286,6 +286,7 @@ const EncounterHistory: React.FC = () => {
           isOpen={isNotesModalOpen}
           onOpenChange={setIsNotesModalOpen}
           encounterId={selectedEncounter.id}
+          patientId={selectedEncounter.patient_id}
           patientName={`${selectedEncounter.patients.first_name} ${selectedEncounter.patients.last_name}`}
           existingNotes={selectedEncounter.notes}
           onNotesUpdated={handleNotesUpdated}
