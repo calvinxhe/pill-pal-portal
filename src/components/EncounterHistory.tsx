@@ -18,9 +18,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
-import { Search, Clock, CheckCircle2, XCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Clock, CheckCircle2, XCircle, ChevronLeft, ChevronRight, FileText, Plus } from 'lucide-react';
+import RetroactiveNotesModal from './RetroactiveNotesModal';
 
 interface Encounter {
   id: string;
@@ -45,6 +52,10 @@ const EncounterHistory: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [page, setPage] = useState(0);
   const pageSize = 10;
+
+  // Modal state
+  const [isNotesModalOpen, setIsNotesModalOpen] = useState(false);
+  const [selectedEncounter, setSelectedEncounter] = useState<Encounter | null>(null);
 
   useEffect(() => {
     loadEncounters();
@@ -123,6 +134,15 @@ const EncounterHistory: React.FC = () => {
     return patientName.includes(searchTerm.toLowerCase());
   });
 
+  const handleOpenNotesModal = (encounter: Encounter) => {
+    setSelectedEncounter(encounter);
+    setIsNotesModalOpen(true);
+  };
+
+  const handleNotesUpdated = () => {
+    loadEncounters();
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -173,6 +193,7 @@ const EncounterHistory: React.FC = () => {
                     <TableHead>Duration</TableHead>
                     <TableHead>Copay</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead className="text-center">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -196,6 +217,34 @@ const EncounterHistory: React.FC = () => {
                           : '-'}
                       </TableCell>
                       <TableCell>{getStatusBadge(encounter.status)}</TableCell>
+                      <TableCell className="text-center">
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant={encounter.notes ? 'outline' : 'ghost'}
+                                size="sm"
+                                onClick={() => handleOpenNotesModal(encounter)}
+                                className="gap-1"
+                              >
+                                {encounter.notes ? (
+                                  <FileText className="h-4 w-4" />
+                                ) : (
+                                  <Plus className="h-4 w-4" />
+                                )}
+                                <span className="sr-only sm:not-sr-only">
+                                  {encounter.notes ? 'Edit' : 'Add'} Notes
+                                </span>
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              {encounter.notes 
+                                ? 'Edit existing notes (time will be tracked)'
+                                : 'Add notes (time will be tracked)'}
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -230,6 +279,18 @@ const EncounterHistory: React.FC = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Retroactive Notes Modal */}
+      {selectedEncounter && (
+        <RetroactiveNotesModal
+          isOpen={isNotesModalOpen}
+          onOpenChange={setIsNotesModalOpen}
+          encounterId={selectedEncounter.id}
+          patientName={`${selectedEncounter.patients.first_name} ${selectedEncounter.patients.last_name}`}
+          existingNotes={selectedEncounter.notes}
+          onNotesUpdated={handleNotesUpdated}
+        />
+      )}
     </div>
   );
 };
