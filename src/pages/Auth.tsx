@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
-import { Loader2, Pill } from 'lucide-react';
+import { Loader2, Activity } from 'lucide-react';
 
 const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -110,11 +110,11 @@ const Auth = () => {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <div className="flex items-center justify-center mb-4">
-            <Pill className="h-12 w-12 text-primary" />
+            <Activity className="h-12 w-12 text-primary" />
           </div>
-          <CardTitle className="text-2xl text-center">PharmaCare Portal</CardTitle>
+          <CardTitle className="text-2xl text-center">CGM Encounter Timesheet</CardTitle>
           <CardDescription className="text-center">
-            Access your pharmacy management dashboard
+            Track CGM setup encounters and generate timesheets
           </CardDescription>
         </CardHeader>
         <CardContent>

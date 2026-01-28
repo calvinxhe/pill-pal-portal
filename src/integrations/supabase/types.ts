@@ -14,7 +14,225 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      cgm_encounters: {
+        Row: {
+          app_pairing_verified: boolean | null
+          copay_amount: number | null
+          created_at: string
+          data_sync_verified: boolean | null
+          ended_at: string | null
+          id: string
+          notes: string | null
+          patient_id: string
+          refill_reminder_given: boolean | null
+          sensor_serial_number: string | null
+          staff_user_id: string
+          started_at: string
+          status: Database["public"]["Enums"]["encounter_status"]
+          total_duration_seconds: number | null
+          updated_at: string
+        }
+        Insert: {
+          app_pairing_verified?: boolean | null
+          copay_amount?: number | null
+          created_at?: string
+          data_sync_verified?: boolean | null
+          ended_at?: string | null
+          id?: string
+          notes?: string | null
+          patient_id: string
+          refill_reminder_given?: boolean | null
+          sensor_serial_number?: string | null
+          staff_user_id: string
+          started_at?: string
+          status?: Database["public"]["Enums"]["encounter_status"]
+          total_duration_seconds?: number | null
+          updated_at?: string
+        }
+        Update: {
+          app_pairing_verified?: boolean | null
+          copay_amount?: number | null
+          created_at?: string
+          data_sync_verified?: boolean | null
+          ended_at?: string | null
+          id?: string
+          notes?: string | null
+          patient_id?: string
+          refill_reminder_given?: boolean | null
+          sensor_serial_number?: string | null
+          staff_user_id?: string
+          started_at?: string
+          status?: Database["public"]["Enums"]["encounter_status"]
+          total_duration_seconds?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cgm_encounters_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      encounter_checklist_items: {
+        Row: {
+          completed: boolean
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          encounter_id: string
+          id: string
+          notes: string | null
+          step_key: string
+          step_label: string
+          step_order: number
+        }
+        Insert: {
+          completed?: boolean
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          encounter_id: string
+          id?: string
+          notes?: string | null
+          step_key: string
+          step_label: string
+          step_order: number
+        }
+        Update: {
+          completed?: boolean
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          encounter_id?: string
+          id?: string
+          notes?: string | null
+          step_key?: string
+          step_label?: string
+          step_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "encounter_checklist_items_encounter_id_fkey"
+            columns: ["encounter_id"]
+            isOneToOne: false
+            referencedRelation: "cgm_encounters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      patient_queue: {
+        Row: {
+          called_at: string | null
+          created_at: string
+          created_by: string
+          id: string
+          intake_form_completed: boolean | null
+          patient_id: string
+          queue_position: number
+          queued_at: string
+          status: Database["public"]["Enums"]["queue_status"]
+        }
+        Insert: {
+          called_at?: string | null
+          created_at?: string
+          created_by: string
+          id?: string
+          intake_form_completed?: boolean | null
+          patient_id: string
+          queue_position: number
+          queued_at?: string
+          status?: Database["public"]["Enums"]["queue_status"]
+        }
+        Update: {
+          called_at?: string | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          intake_form_completed?: boolean | null
+          patient_id?: string
+          queue_position?: number
+          queued_at?: string
+          status?: Database["public"]["Enums"]["queue_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patient_queue_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      patients: {
+        Row: {
+          address: string | null
+          cgm_prescription_active: boolean | null
+          city: string | null
+          consent_form_signed: boolean | null
+          created_at: string
+          date_of_birth: string | null
+          email: string | null
+          first_name: string
+          freestyle_libre_app_installed: boolean | null
+          id: string
+          insurance_cgm_coverage_verified: boolean | null
+          insurance_member_id: string | null
+          insurance_provider: string | null
+          last_name: string
+          notes: string | null
+          phone: string | null
+          state: string | null
+          updated_at: string
+          zip_code: string | null
+        }
+        Insert: {
+          address?: string | null
+          cgm_prescription_active?: boolean | null
+          city?: string | null
+          consent_form_signed?: boolean | null
+          created_at?: string
+          date_of_birth?: string | null
+          email?: string | null
+          first_name: string
+          freestyle_libre_app_installed?: boolean | null
+          id?: string
+          insurance_cgm_coverage_verified?: boolean | null
+          insurance_member_id?: string | null
+          insurance_provider?: string | null
+          last_name: string
+          notes?: string | null
+          phone?: string | null
+          state?: string | null
+          updated_at?: string
+          zip_code?: string | null
+        }
+        Update: {
+          address?: string | null
+          cgm_prescription_active?: boolean | null
+          city?: string | null
+          consent_form_signed?: boolean | null
+          created_at?: string
+          date_of_birth?: string | null
+          email?: string | null
+          first_name?: string
+          freestyle_libre_app_installed?: boolean | null
+          id?: string
+          insurance_cgm_coverage_verified?: boolean | null
+          insurance_member_id?: string | null
+          insurance_provider?: string | null
+          last_name?: string
+          notes?: string | null
+          phone?: string | null
+          state?: string | null
+          updated_at?: string
+          zip_code?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +241,8 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      encounter_status: "in_progress" | "completed" | "cancelled"
+      queue_status: "waiting" | "called" | "in_progress" | "done"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +369,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      encounter_status: ["in_progress", "completed", "cancelled"],
+      queue_status: ["waiting", "called", "in_progress", "done"],
+    },
   },
 } as const
