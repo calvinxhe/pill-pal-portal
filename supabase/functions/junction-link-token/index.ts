@@ -5,6 +5,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Mock mode - set to false when using real Vital API
+const USE_MOCK_DATA = true;
+
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -44,6 +47,25 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Mock mode: return fake link token for testing
+    if (USE_MOCK_DATA) {
+      console.log('Using mock data for patient:', patientId);
+      
+      // Generate a mock link token (in real implementation, this comes from Vital API)
+      const mockUserId = `mock-user-${patientId.substring(0, 8)}`;
+      const mockLinkToken = `mock-link-token-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+      
+      return new Response(
+        JSON.stringify({ 
+          link_token: mockLinkToken,
+          user_id: mockUserId,
+          mock: true
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Real API mode
     const junctionApiKey = Deno.env.get('JUNCTION_API_KEY');
     if (!junctionApiKey) {
       console.error('JUNCTION_API_KEY is not configured');
@@ -54,7 +76,6 @@ Deno.serve(async (req) => {
     }
 
     // First, create or get the Junction user for this patient
-    // Using the patient ID as a client_user_id to maintain mapping
     const userResponse = await fetch('https://api.tryvital.io/v2/user', {
       method: 'POST',
       headers: {
