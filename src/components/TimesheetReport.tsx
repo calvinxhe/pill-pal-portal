@@ -404,8 +404,8 @@ const TimesheetReport: React.FC = () => {
               Notes for {selectedNotes?.patientName}
             </DialogTitle>
           </DialogHeader>
-          <ScrollArea className="max-h-[60vh]">
-            <div className="p-4 text-sm whitespace-pre-wrap">
+          <ScrollArea className="h-[60vh] w-full">
+            <div className="p-4 text-sm whitespace-pre-wrap break-words">
               {selectedNotes?.notes}
             </div>
           </ScrollArea>
