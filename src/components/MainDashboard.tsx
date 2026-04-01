@@ -131,6 +131,10 @@ const MainDashboard = () => {
               <KnowledgeBase />
             </TabsContent>
 
+            <TabsContent value="admin">
+              <AdminPanel />
+            </TabsContent>
+
             <TabsContent value="settings">
               <Card>
                 <CardHeader>
