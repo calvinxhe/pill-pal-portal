@@ -23,6 +23,7 @@ import ProfileSetup from './ProfileSetup';
 import EncounterDashboard from './EncounterDashboard';
 import EncounterHistory from './EncounterHistory';
 import TimesheetReport from './TimesheetReport';
+import AdminPanel from './AdminPanel';
 
 const MainDashboard = () => {
   const { user, signOut } = useAuth();
@@ -90,6 +91,10 @@ const MainDashboard = () => {
                   <Users className="h-4 w-4 mr-2" />
                   Profile Setup
                 </TabsTrigger>
+                <TabsTrigger value="admin" className="justify-start">
+                  <TrendingUp className="h-4 w-4 mr-2" />
+                  Admin Panel
+                </TabsTrigger>
                 <TabsTrigger value="settings" className="justify-start">
                   <Settings className="h-4 w-4 mr-2" />
                   Settings
@@ -124,6 +129,10 @@ const MainDashboard = () => {
 
             <TabsContent value="knowledge">
               <KnowledgeBase />
+            </TabsContent>
+
+            <TabsContent value="admin">
+              <AdminPanel />
             </TabsContent>
 
             <TabsContent value="settings">

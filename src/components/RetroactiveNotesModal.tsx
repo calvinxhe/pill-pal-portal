@@ -42,7 +42,7 @@ const RetroactiveNotesModal: React.FC<RetroactiveNotesModalProps> = ({
   const [timeType, setTimeType] = useState<'PCM' | 'CCM' | 'TCM'>('PCM');
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = useRef<Date | null>(null);
 
   // Start timer when modal opens
