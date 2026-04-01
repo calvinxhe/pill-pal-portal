@@ -19,7 +19,7 @@ export const useEncounterTimer = ({
   isActive,
 }: UseEncounterTimerProps): UseEncounterTimerReturn => {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const calculateElapsed = useCallback(() => {
     if (!startedAt) return 0;
