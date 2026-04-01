@@ -91,6 +91,10 @@ const MainDashboard = () => {
                   <Users className="h-4 w-4 mr-2" />
                   Profile Setup
                 </TabsTrigger>
+                <TabsTrigger value="admin" className="justify-start">
+                  <TrendingUp className="h-4 w-4 mr-2" />
+                  Admin Panel
+                </TabsTrigger>
                 <TabsTrigger value="settings" className="justify-start">
                   <Settings className="h-4 w-4 mr-2" />
                   Settings
