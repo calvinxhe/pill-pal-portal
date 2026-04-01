@@ -23,6 +23,7 @@ import ProfileSetup from './ProfileSetup';
 import EncounterDashboard from './EncounterDashboard';
 import EncounterHistory from './EncounterHistory';
 import TimesheetReport from './TimesheetReport';
+import AdminPanel from './AdminPanel';
 
 const MainDashboard = () => {
   const { user, signOut } = useAuth();
